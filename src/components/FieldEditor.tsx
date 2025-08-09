@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef } from 'react';
 import {
   Card,
   CardContent,
@@ -33,9 +33,11 @@ import { useFormBuilder } from '../context/FormBuilderContext';
 interface FieldEditorProps {
   field: FormField;
   availableFields: FormField[];
+  dragHandleProps?: any;
 }
 
-export function FieldEditor({ field, availableFields }: FieldEditorProps) {
+export const FieldEditor = forwardRef<HTMLDivElement, FieldEditorProps>(
+  ({ field, availableFields, dragHandleProps }, ref) => {
   const { dispatch } = useFormBuilder();
   const [newOption, setNewOption] = useState('');
   const [newValidationRule, setNewValidationRule] = useState<ValidationRule>({
@@ -100,9 +102,9 @@ export function FieldEditor({ field, availableFields }: FieldEditorProps) {
   ];
 
   return (
-    <Card sx={{ mb: 2, border: 1, borderColor: 'grey.200' }}>
+    <Card sx={{ mb: 2, border: 1, borderColor: 'grey.200' }} ref={ref}>
       <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }} {...dragHandleProps}>
           <DragIndicator sx={{ color: 'grey.400', mr: 1, cursor: 'grab' }} />
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {field.label || 'New Field'}
@@ -368,4 +370,4 @@ export function FieldEditor({ field, availableFields }: FieldEditorProps) {
       </CardActions>
     </Card>
   );
-}
+});

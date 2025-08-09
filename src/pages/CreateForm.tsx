@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  
   Dialog,
   DialogTitle,
   DialogContent,
@@ -12,7 +11,13 @@ import {
   Paper,
   Alert,
 } from '@mui/material';
-import {  Save } from '@mui/icons-material';
+import { Save } from '@mui/icons-material';
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from 'react-beautiful-dnd';
 import { useFormBuilder } from '../context/FormBuilderContext';
 import { FieldEditor } from '../components/FieldEditor';
 import { FormField, FieldType } from '../types/form';
@@ -37,16 +42,29 @@ export function CreateForm() {
       validationRules: [],
       order: state.currentForm?.fields.length || 0,
     };
-
     dispatch({ type: 'ADD_FIELD', payload: newField });
   };
 
   const handleSaveForm = () => {
     if (!formName.trim()) return;
-    
     dispatch({ type: 'SAVE_FORM', payload: { name: formName } });
     setSaveDialogOpen(false);
     setFormName('');
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const reorderedFields = Array.from(state.currentForm!.fields);
+    const [movedField] = reorderedFields.splice(result.source.index, 1);
+    reorderedFields.splice(result.destination.index, 0, movedField);
+
+    const updatedFields = reorderedFields.map((field, index) => ({
+      ...field,
+      order: index,
+    }));
+
+    dispatch({ type: 'REORDER_FIELDS', payload: updatedFields });
   };
 
   const fieldTypes: { type: FieldType; label: string; description: string }[] = [
@@ -70,7 +88,6 @@ export function CreateForm() {
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
           Add Fields
         </Typography>
-        
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {fieldTypes.map((fieldType) => (
             <Button
@@ -98,7 +115,6 @@ export function CreateForm() {
             </Button>
           ))}
         </Box>
-
         <Button
           variant="contained"
           fullWidth
@@ -127,21 +143,37 @@ export function CreateForm() {
             Start building your form by adding fields from the left panel.
           </Alert>
         ) : (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Fields ({state.currentForm.fields.length})
-            </Typography>
-            
-            {state.currentForm.fields
-              .sort((a, b) => a.order - b.order)
-              .map((field) => (
-                <FieldEditor
-                  key={field.id}
-                  field={field}
-                  availableFields={state.currentForm?.fields || []}
-                />
-              ))}
-          </Box>
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="fields">
+              {(provided) => (
+                <Box {...provided.droppableProps} ref={provided.innerRef}>
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    Fields ({state.currentForm.fields.length})
+                  </Typography>
+                  {state.currentForm.fields
+                    .sort((a, b) => a.order - b.order)
+                    .map((field, index) => (
+                      <Draggable
+                        key={field.id}
+                        draggableId={field.id}
+                        index={index}
+                      >
+                        {(provided) => (
+                          <FieldEditor
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            dragHandleProps={provided.dragHandleProps}
+                            field={field}
+                            availableFields={state.currentForm?.fields || []}
+                          />
+                        )}
+                      </Draggable>
+                    ))}
+                  {provided.placeholder}
+                </Box>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </Box>
 
